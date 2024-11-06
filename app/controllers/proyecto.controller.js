@@ -1,21 +1,20 @@
 const db = require('../config/db.config.js');
 const Proyecto = db.Proyecto;
 
-
-exports.create = (req, res) => {
-    let proyecto = {};
-
+// Crear un nuevo proyecto
+exports.create = async (req, res) => {
     try {
-        proyecto.id_usuario = req.body.id_usuario;
-        proyecto.nombre = req.body.nombre;
-        proyecto.descripcion = req.body.descripcion;
-        proyecto.fecha_creacion = req.body.fecha_creacion;
+        const proyecto = {
+            id_usuario: req.body.id_usuario,
+            nombre: req.body.nombre,
+            descripcion: req.body.descripcion,
+            fecha_creacion: req.body.fecha_creacion
+        };
 
-        Proyecto.create(proyecto).then(result => {
-            res.status(200).json({
-                message: "Proyecto creado exitosamente con id = " + result.id_proyecto,
-                proyecto: result,
-            });
+        const result = await Proyecto.create(proyecto);
+        res.status(200).json({
+            message: "Proyecto creado exitosamente",
+            proyecto: result
         });
     } catch (error) {
         res.status(500).json({
@@ -25,81 +24,74 @@ exports.create = (req, res) => {
     }
 };
 
-
-exports.retrieveAllProyectos = (req, res) => {
-    Proyecto.findAll()
-        .then(proyectoInfos => {
-            res.status(200).json({
-                message: "¡Proyectos obtenidos exitosamente!",
-                proyectos: proyectoInfos
-            });
-        })
-        .catch(error => {
-            console.log(error);
-            res.status(500).json({
-                message: "¡Error al obtener los proyectos!",
-                error: error
-            });
+// Obtener todos los proyectos
+exports.retrieveAllProyectos = async (req, res) => {
+    try {
+        const proyectoInfos = await Proyecto.findAll();
+        res.status(200).json({
+            message: "¡Proyectos obtenidos exitosamente!",
+            proyectos: proyectoInfos
         });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            message: "¡Error al obtener los proyectos!",
+            error: error.message
+        });
+    }
 };
 
+// Obtener un proyecto por su ID
+exports.getProyectoById = async (req, res) => {
+    try {
+        const proyectoId = req.params.id;
+        const proyecto = await Proyecto.findByPk(proyectoId);
 
-exports.getProyectoById = (req, res) => {
-    let proyectoId = req.params.id;
-    Proyecto.findByPk(proyectoId)
-        .then(proyecto => {
-            if (!proyecto) {
-                return res.status(404).json({
-                    message: "Proyecto no encontrado con id = " + proyectoId
-                });
-            }
-            res.status(200).json({
-                message: "Proyecto obtenido exitosamente con id = " + proyectoId,
-                proyecto: proyecto
+        if (!proyecto) {
+            return res.status(404).json({
+                message: "Proyecto no encontrado con id = " + proyectoId
             });
-        })
-        .catch(error => {
-            console.log(error);
-            res.status(500).json({
-                message: "¡Error al obtener proyecto con id!",
-                error: error
-            });
+        }
+
+        res.status(200).json({
+            message: "Proyecto obtenido exitosamente",
+            proyecto: proyecto
         });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            message: "¡Error al obtener proyecto con id!",
+            error: error.message
+        });
+    }
 };
 
+// Actualizar un proyecto por su ID
 exports.updateById = async (req, res) => {
     try {
-        let proyectoId = req.params.id;
-        let proyecto = await Proyecto.findByPk(proyectoId);
-    
+        const proyectoId = req.params.id;
+        const proyecto = await Proyecto.findByPk(proyectoId);
+
         if (!proyecto) {
-            res.status(404).json({
-                message: "No se encontró el Proyecto para actualizar con id = " + proyectoId,
-                proyecto: "",
-                error: "404"
+            return res.status(404).json({
+                message: "No se encontró el Proyecto para actualizar con id = " + proyectoId
             });
-        } else {    
-            let updatedObject = {
-                id_usuario: req.body.id_usuario,
-                nombre: req.body.nombre,
-                descripcion: req.body.descripcion,
-                fecha_creacion: req.body.fecha_creacion
-            };
-            
-            let result = await Proyecto.update(updatedObject, { returning: true, where: { id_proyecto: proyectoId } });
-            
-            if (!result) {
-                res.status(500).json({
-                    message: "No se puede actualizar un proyecto con id = " + proyectoId,
-                    error: "No se pudo actualizar el proyecto",
-                });
-            } else {
-                res.status(200).json({
-                    message: "Actualización exitosa del Proyecto con id = " + proyectoId,
-                    proyecto: updatedObject,
-                });
-            }
         }
+
+        const updatedObject = {
+            id_usuario: req.body.id_usuario,
+            nombre: req.body.nombre,
+            descripcion: req.body.descripcion,
+            fecha_creacion: req.body.fecha_creacion
+        };
+
+        await Proyecto.update(updatedObject, { where: { id_proyecto: proyectoId } });
+
+        const updatedProyecto = await Proyecto.findByPk(proyectoId);
+        res.status(200).json({
+            message: "Actualización exitosa del Proyecto",
+            proyecto: updatedProyecto
+        });
     } catch (error) {
         res.status(500).json({
             message: "No se puede actualizar un proyecto con id = " + req.params.id,
@@ -108,28 +100,27 @@ exports.updateById = async (req, res) => {
     }
 };
 
-
+// Eliminar un proyecto por su ID
 exports.deleteById = async (req, res) => {
     try {
-        let proyectoId = req.params.id;
-        let proyecto = await Proyecto.findByPk(proyectoId);
+        const proyectoId = req.params.id;
+        const proyecto = await Proyecto.findByPk(proyectoId);
 
         if (!proyecto) {
-            res.status(404).json({
-                message: "No existe el proyecto con id = " + proyectoId,
-                error: "404",
-            });
-        } else {
-            await proyecto.destroy();
-            res.status(200).json({
-                message: "Eliminación exitosa del Proyecto con id = " + proyectoId,
-                proyecto: proyecto,
+            return res.status(404).json({
+                message: "No existe el proyecto con id = " + proyectoId
             });
         }
+
+        await proyecto.destroy();
+        res.status(200).json({
+            message: "Eliminación exitosa del Proyecto",
+            proyecto: proyecto
+        });
     } catch (error) {
         res.status(500).json({
             message: "No se puede eliminar un proyecto con id = " + req.params.id,
-            error: error.message,
+            error: error.message
         });
     }
 };
