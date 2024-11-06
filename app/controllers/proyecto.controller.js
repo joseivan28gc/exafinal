@@ -12,17 +12,20 @@ exports.create = async (req, res) => {
         };
 
         const result = await Proyecto.create(proyecto);
+        console.log("Proyecto creado:", result); // Verifica si llega aquí
         res.status(200).json({
             message: "Proyecto creado exitosamente",
             proyecto: result
         });
     } catch (error) {
+        console.error("Error al crear proyecto:", error);
         res.status(500).json({
             message: "¡Fallo al crear el proyecto!",
             error: error.message
         });
     }
 };
+
 
 // Obtener todos los proyectos
 exports.retrieveAllProyectos = async (req, res) => {
